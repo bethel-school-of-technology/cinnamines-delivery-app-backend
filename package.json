@@ -1,0 +1,20 @@
+{
+  "name": "cinnamines-delivery-app-backend",
+  "version": "1.0.0",
+  "description": "cinnamines-delivery-app-backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend/issues"
+  },
+  "homepage": "https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend#readme"
+}
