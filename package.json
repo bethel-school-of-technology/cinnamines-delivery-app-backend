@@ -22,5 +22,8 @@
     "@babel/preset-env": "^7.6.3",
     "babel-cli": "^6.26.0",
     "babel-watch": "^7.0.0"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
   }
 }
