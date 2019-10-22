@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend/issues"
   },
-  "homepage": "https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend#readme"
+  "homepage": "https://github.com/bethel-school-of-technology/cinnamines-delivery-app-backend#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0"
+  }
 }
