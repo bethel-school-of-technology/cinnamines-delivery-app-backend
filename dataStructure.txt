@@ -1,0 +1,30 @@
+{
+   "_id": "123",
+   "name": "Jeremy Houser",
+   "email": "email@domain.com",
+   "password": "saltedAndHashedPassword",
+   "phone": "1234567890",
+   "orders": [
+      {
+        "order_id": "123",
+        "qty": "8",
+        "address": "Faketown",
+        "delivDate": "date",
+        "status": "awaiting confirmation, confirmed, en route, delivered"
+      },
+      {
+        "order_id": "124",
+        "qty": "12",
+        "address": "Faketown",
+        "delivDate": "date",
+        "status": "awaiting confirmation, confirmed, en route, delivered"
+      },
+      {
+        "order_id": "125",
+        "qty": "108",
+        "address": "Faketown",
+        "delivDate": "date",
+        "status": "awaiting confirmation, confirmed, en route, delivered"
+      }
+   ]
+}
