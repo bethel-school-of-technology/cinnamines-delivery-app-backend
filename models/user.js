@@ -15,6 +15,10 @@ let User = new Schema({
   phone: {
     type: String
   }
+  // admin: {
+  //   type: Boolean,
+  //   default: "false"
+  // }
 });
 
 export default mongoose.model('User', User);
