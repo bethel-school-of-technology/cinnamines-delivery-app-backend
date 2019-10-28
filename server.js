@@ -6,6 +6,9 @@ import mongoose from 'mongoose';
 import User from './models/user';
 import Order from './models/order';
 
+var models = require('./models');
+var shService = require('./services/saltnhash');
+
 const app = express();
 const router = express.Router();
 
@@ -21,7 +24,7 @@ mongoose.connect('mongodb://localhost:27017/testfinalproject');
 // terminal command "mongod" should run the local server
 // collection names are users and orders, local database is testfinalproject
 // All i need to run my cloud server is npm run dev...no mongod in terminal nor establish a connection via mongo shell or mongodb compass!
-// To run on localhost i have to have mongod running on port 27017 and then npm run dev
+// To run on localhost I have to have mongod running on port 27017 and then npm run dev
 
 const connection = mongoose.connection;
 
@@ -52,9 +55,16 @@ router.route('/users/:id').get((req, res) => {
 });
 
 // verified below route works
-// add one user
-router.route('/users/add').post((req, res) => {
-  let user = new User(req.body);
+// add one user - sign up page needs salt and hash
+router.route('/users/singup').post((req, res) => {
+  let user = new User({
+    name: req.body.name,
+    email: req.body.email,
+    password: shService.hashPassword(req.body.password),
+    phone: req.body.phone,
+    admin: req.body.admin
+  }, );
+  
   user.save()
     .then(user => {
       res.status(200).json({ 'user': 'Added successfully' });
@@ -62,6 +72,30 @@ router.route('/users/add').post((req, res) => {
     .catch(err => {
       res.status(400).send('Failed to create new record');
     });
+});
+
+// login route - compare passwords and return JWT token with _id and admin fields
+router.route('/users/login').get((req, res) => {
+  User.findOne({
+    { email: req.body.email }
+  }).then(user => {
+    if (!user) {
+      console.log('User not found')
+      return res.status(401).json({
+        message: "Login Failed"
+      });
+    } else {
+      let passwordMatch = shService.comparePasswords(req.body.password, user.password);
+      if (passwordMatch) {
+        // let token = authService.signUser(user);
+        // res.cookie('jwt', token);
+        res.send('Login Successful');
+      } else {
+        console.log('Wrong Password');
+        res.send('Wrong Password')
+      }
+    }
+  });
 });
 
 // verified below route works
