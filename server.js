@@ -5,6 +5,9 @@ import mongoose from 'mongoose';
 
 import User from './models/user';
 import Order from './models/order';
+import { resolve } from 'dns';
+
+var shService = require('./services/saltnhash');
 
 const app = express();
 const router = express.Router();
@@ -21,7 +24,7 @@ mongoose.connect('mongodb://localhost:27017/testfinalproject');
 // terminal command "mongod" should run the local server
 // collection names are users and orders, local database is testfinalproject
 // All i need to run my cloud server is npm run dev...no mongod in terminal nor establish a connection via mongo shell or mongodb compass!
-// To run on localhost i have to have mongod running on port 27017 and then npm run dev
+// To run on localhost I have to have mongod running on port 27017 and then npm run dev
 
 const connection = mongoose.connection;
 
@@ -52,21 +55,56 @@ router.route('/users/:id').get((req, res) => {
 });
 
 // verified below route works
-// add one user
-router.route('/users/add').post((req, res) => {
-  let user = new User(req.body);
-  user.save()
-    .then(user => {
-      res.status(200).json({ 'user': 'Added successfully' });
-    })
-    .catch(err => {
-      res.status(400).send('Failed to create new record');
-    });
+// add one user - salt and hashes password and checks to see if a user exists with that email first
+router.route('/users/signup').post((req, res) => {
+  let newUser = new User({
+    name: req.body.name,
+    email: req.body.email,
+    password: shService.hashPassword(req.body.password),
+    phone: req.body.phone,
+  });
+  User.findOne({ email: req.body.email }, (err, user) => {
+    if (user) {
+      return res.send('User already exists');
+    } else {
+      newUser.save()
+        .then(user => {
+          res.status(200).send('User Added successfully');
+        })
+        .catch(err => {
+          res.status(400).send('Failed to create new record');
+        });
+    }
+  });
+});
+
+// Works!!!
+// login route - compare passwords and return JWT token with _id and admin fields
+router.route('/users/login').post((req, res) => {
+  var checkEmail = req.body.email;
+  var checkPassword = req.body.password;
+
+  User.findOne({ email: checkEmail }, (err, user) => {
+    if (!user) {
+      return res.status(401).send('Login Failed, User not found');
+    } if (user) {
+      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
+      if (passwordMatch) {
+        // JWT token stuff goes here: for example...
+        // let token = authService.signUser(user);
+        // res.cookie('jwt', token);
+        res.send('Login Successful');
+      } else {
+        console.log('Wrong Password');
+        res.send('Wrong Password');
+      }
+    }
+  });
 });
 
 // verified below route works
 // update one user with all new info (except password)
-router.route('/users/updateall/:id').post((req, res) => {
+router.route('/users/updateall/:id').post((req, res, next) => {
   User.findById(req.params.id, (err, user) => {
     if (!user)
       return next(new Error('Could not load document'));
@@ -172,7 +210,7 @@ router.route('/orders').get((req, res) => {
 
 // gets all orders that do not have a status of delivered
 router.route('/orders/status').get((req, res) => {
-  Order.find({ status: { $ne : "Delivered"} }, (err, order) => {
+  Order.find({ status: { $ne: "Delivered" } }, (err, order) => {
     if (err)
       console.log(err);
     else
