@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 
 import User from './models/user';
 import Order from './models/order';
-import { resolve } from 'dns';
 
 var shService = require('./services/saltnhash');
 
