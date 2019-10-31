@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import User from './models/user';
 import Order from './models/order';
 
+import authService from './services/jwtAuth';
+
 var shService = require('./services/saltnhash');
 
 const app = express();
@@ -89,10 +91,11 @@ router.route('/users/login').post((req, res) => {
     } if (user) {
       let passwordMatch = shService.comparePasswords(checkPassword, user.password);
       if (passwordMatch) {
-        // JWT token stuff goes here: for example...
-        // let token = authService.signUser(user);
-        // res.cookie('jwt', token);
-        res.send('Login Successful');
+        
+        let token = authService.signUser(user); //  create JWT
+        res.cookie('JWT', token);               //  post cookie to browser
+        res.send('login Successful')
+
       } else {
         console.log('Wrong Password');
         res.send('Wrong Password');
