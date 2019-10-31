@@ -28,7 +28,7 @@ mongoose.connect('mongodb://localhost:27017/testfinalproject');
 const connection = mongoose.connection;
 
 connection.once('open', () => {
-  console.log('MongoDB database connection established succefully');
+  console.log('MongoDB database connection established successfully');
 });
 
 // verified below route works
