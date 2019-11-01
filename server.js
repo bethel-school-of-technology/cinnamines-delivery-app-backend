@@ -36,15 +36,16 @@ connection.once('open', () => {
 // verified below route works
 // get a list of all users
 router.route('/users').get((req, res) => {
-  let token = req.cookie;
-  authService.verifyUser(token);
+  // let token = req.cookie.jwt;
+  // authService.verifyUser(token)
+
+    User.find((err, users) => {
+      if (err)
+        console.log(err);
+      else
+        res.json(users);
   
-  User.find((err, users) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(users);
-  });
+  }) 
 });
 
 // verified below route works
@@ -96,7 +97,7 @@ router.route('/users/login').post((req, res) => {
       if (passwordMatch) {
         
         let token = authService.signUser(user); //  create JWT
-        res.cookie('JWT', token);               //  post cookie to browser
+        res.cookie('jwt', token);               //  post cookie to browser
         res.send('login Successful')
 
       } else {
@@ -106,6 +107,17 @@ router.route('/users/login').post((req, res) => {
     }
   });
 });
+
+// verified logout route works
+// logout Route
+router.route('/users/logout').post((req, res) => {
+  res.cookie("jwt", " ", { expires: new Date(0) });
+  res.send('Logged Out');
+});
+
+
+
+
 
 // verified below route works
 // update one user with all new info (except password)
