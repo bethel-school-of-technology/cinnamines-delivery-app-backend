@@ -36,6 +36,9 @@ connection.once('open', () => {
 // verified below route works
 // get a list of all users
 router.route('/users').get((req, res) => {
+  let token = req.cookie;
+  authService.verifyUser(token);
+  
   User.find((err, users) => {
     if (err)
       console.log(err);

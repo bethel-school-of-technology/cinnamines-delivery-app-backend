@@ -10,7 +10,7 @@ var authService = {
       },
       'secretkey',                      // this is the "Secret Key" at the moment.
       {
-        expiresIn: 60       // numeric values are in seconds. A numeric string will be in ms. Strings ie "1h" = 1 hour, "1d" = 1 day...
+        expiresIn: "1h"       // numeric values are in seconds. A numeric string will be in ms. Strings ie "1h" = 1 hour, "1d" = 1 day...
       }
     );
     return token;
