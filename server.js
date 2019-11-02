@@ -92,7 +92,8 @@ router.route('/users/login').post((req, res) => {
         // JWT token stuff goes here: for example...
         // let token = authService.signUser(user);
         // res.cookie('jwt', token);
-        res.send('Login Successful');
+        // res.send('Login Successful');
+        res.json({reply: 'Login Successful'});
       } else {
         console.log('Wrong Password');
         res.send('Wrong Password');
