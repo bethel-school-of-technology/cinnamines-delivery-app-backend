@@ -7,6 +7,7 @@ import User from './models/user';
 import Order from './models/order';
 
 var shService = require('./services/saltnhash');
+import authService from './services/jwtAuth';
 
 const app = express();
 const router = express.Router();
@@ -42,6 +43,7 @@ router.route('/users').get((req, res) => {
   });
 });
 
+
 // verified below route works
 // get one user
 router.route('/users/:id').get((req, res) => {
@@ -52,6 +54,7 @@ router.route('/users/:id').get((req, res) => {
       res.json(user);
   });
 });
+
 
 // verified below route works
 // add one user - salt and hashes password and checks to see if a user exists with that email first
@@ -73,31 +76,6 @@ router.route('/users/signup').post((req, res) => {
         .catch(err => {
           res.status(400).send('Failed to create new record');
         });
-    }
-  });
-});
-
-// Works!!!
-// login route - compare passwords and return JWT token with _id and admin fields
-router.route('/users/login').post((req, res) => {
-  var checkEmail = req.body.email;
-  var checkPassword = req.body.password;
-
-  User.findOne({ email: checkEmail }, (err, user) => {
-    if (!user) {
-      return res.status(401).send('Login Failed, User not found');
-    } if (user) {
-      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
-      if (passwordMatch) {
-        // JWT token stuff goes here: for example...
-        // let token = authService.signUser(user);
-        // res.cookie('jwt', token);
-        // res.send('Login Successful');
-        res.json({reply: 'Login Successful'});
-      } else {
-        console.log('Wrong Password');
-        res.send('Wrong Password');
-      }
     }
   });
 });
@@ -283,6 +261,57 @@ router.route('/orders/user/:userid').get((req, res) => {
       res.json(order);
   });
 });
+
+
+// Works!!!
+// users/login route - compare passwords and return JWT token with _id and admin fields
+router.route('/users/login').post((req, res) => {
+  var checkEmail = req.body.email;
+  var checkPassword = req.body.password;
+
+  User.findOne({ email: checkEmail }, (err, user) => {
+    if (!user) {
+      return res.status(401).send('Login Failed, User not found');
+    } if (user) {
+      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
+      if (passwordMatch) {
+        let token = authService.signUser(user);   // created token
+        res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+        res.json({reply: 'Login Successful'});
+      } else {
+        console.log('Wrong Password');
+        res.send('Wrong Password');
+      }
+    }
+  });
+});
+
+
+// login and use jwt as cookie
+// router.route('/login').post((req, res) => {
+//   User.find({
+//     where: {
+//       email: req.body.email,
+//       password: req.body.password
+//     }
+
+//   }).then(user => {       // find() method returns the object (if found) and passes it in as 'user' for testing
+//     if(!user) {           // find() did not find a matching name & password - therefore 'user' is null
+//       console.log('Authorised User not found');
+//       return res.status(401).json({
+//         message: "login Failed - Not Valid"
+//       });
+//     } 
+//     if(user) {
+//       let token = authService.signUser(user);   // created token
+//       res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+//       res.send('Login Successfull');
+//     } else {
+//       console.log('Wrong Password');
+//       res.redirect('login')
+//     }
+//   });
+// });
 
 app.use('/', router);
 
