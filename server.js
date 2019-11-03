@@ -10,7 +10,7 @@ import authService from './services/jwtAuth';
 import cookieParser from 'cookie-parser';
 
 var shService = require('./services/saltnhash');
-import authService from './services/jwtAuth';
+
 
 const app = express();
 const router = express.Router();
@@ -98,7 +98,6 @@ router.route('/users/signup').post((req, res) => {
   });
 });
 
-<<<<<<< HEAD
 // Works!!!
 // login route - compare passwords and return JWT token with _id and admin fields
 router.route('/users/login').post((req, res) => {
@@ -135,8 +134,6 @@ router.route('/users/logout').post((req, res) => {
 
 
 
-=======
->>>>>>> 76eabfbab36cdc8938b6a7f2b10435d4c9d462f9
 // verified below route works
 // update one user with all new info (except password)
 router.route('/users/updateall/:id').post((req, res, next) => {
