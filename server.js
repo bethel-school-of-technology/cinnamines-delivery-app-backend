@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import mongoose from 'mongoose';
+import mongoose, { ConnectionStates } from 'mongoose';
 
 import User from './models/user';
 import Order from './models/order';
 
 import authService from './services/jwtAuth';
+import cookieParser from 'cookie-parser';
 
 var shService = require('./services/saltnhash');
 
@@ -15,6 +16,7 @@ const router = express.Router();
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 // url string for mongodb instance goes below
 mongoose.connect('mongodb://localhost:27017/testfinalproject');
@@ -33,17 +35,26 @@ connection.once('open', () => {
   console.log('MongoDB database connection established successfully');
 });
 
-// verified below route works
+
 // get a list of all users
-router.route('/users').get((req, res) => {
-  // let token = req.cookie.jwt;
-  // authService.verifyUser(token)
+
+router.get('/users', (req, res) => {
+  let token = req.cookies.jwt;   // unable to access the cookies ????
+  
+  // is there a token - if so session not expired or logged out
+  
+  authService.verifyUser(token)
+
+  // is the admin property set to 'true'
 
     User.find((err, users) => {
-      if (err)
+      if (err) {
         console.log(err);
-      else
+      }else{
         res.json(users);
+        console.log('token ' + ' ', token); // Am I getting a cookie back?
+      }
+        
   
   }) 
 });
@@ -67,6 +78,7 @@ router.route('/users/signup').post((req, res) => {
     email: req.body.email,
     password: shService.hashPassword(req.body.password),
     phone: req.body.phone,
+    admin: req.body.admin    // otherwise no way create admin user
   });
   User.findOne({ email: req.body.email }, (err, user) => {
     if (user) {
