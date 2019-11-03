@@ -40,6 +40,7 @@ connection.once('open', () => {
 
 router.get('/users', (req, res) => {
   let token = req.cookies.jwt;   // unable to access the cookies ????
+  console.log('The token is ' + ' ', token); // Am I getting a cookie back?
   
   // is there a token - if so session not expired or logged out
   
@@ -52,7 +53,6 @@ router.get('/users', (req, res) => {
         console.log(err);
       }else{
         res.json(users);
-        console.log('token ' + ' ', token); // Am I getting a cookie back?
       }
         
   

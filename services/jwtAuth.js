@@ -23,7 +23,7 @@ var authService = {
   try {
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
     console.log('decoded ' + ' ', decoded);     // Am I getting a decoded cookie?
-    return models.users.findById(decoded._id); //<--- Return result of database query as promise
+    // return models.users.findById(decoded._id); //<--- Return result of database query as promise
   } catch (err) {
     console.log(err);
     return null;
