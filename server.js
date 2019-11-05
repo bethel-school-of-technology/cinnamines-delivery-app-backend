@@ -40,36 +40,49 @@ connection.once('open', () => {
 // get a list of all users
 
 router.get('/users', (req, res) => {
-  let token = req.cookies.jwt;   // unable to access the cookies ????
-  console.log('The token is ' + ' ', token); // Am I getting a cookie back?
-
-  // is there a token - if so session not expired or logged out
-
-  authService.verifyUser(token)
-
-  // is the admin property set to 'true'
-
-  User.find((err, users) => {
-    if (err) {
-      console.log(err);
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
+    if (decoded.admin) {
+      User.find((err, users) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.json(users);
+        }
+      })
     } else {
-      res.json(users);
+      res.status(401);
+      res.send('User not authorized');
     }
-
-
-  })
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
 
 // verified below route works
 // get one user
-router.route('/users/:id').get((req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(user);
-  });
+router.route('/users/profile').get((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
+    if (!decoded.admin) {
+      User.findById(decoded._id, (err, user) => {
+        if (err)
+          console.log(err);
+        else
+          res.json(user);
+      });
+    } else {
+      res.status(401);
+      res.send('This user is an admin, please redirect to admin profile page');
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
 
