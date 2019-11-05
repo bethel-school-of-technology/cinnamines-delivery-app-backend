@@ -42,22 +42,22 @@ connection.once('open', () => {
 router.get('/users', (req, res) => {
   let token = req.cookies.jwt;   // unable to access the cookies ????
   console.log('The token is ' + ' ', token); // Am I getting a cookie back?
-  
+
   // is there a token - if so session not expired or logged out
-  
+
   authService.verifyUser(token)
 
   // is the admin property set to 'true'
 
-    User.find((err, users) => {
-      if (err) {
-        console.log(err);
-      }else{
-        res.json(users);
-      }
-        
-  
-  }) 
+  User.find((err, users) => {
+    if (err) {
+      console.log(err);
+    } else {
+      res.json(users);
+    }
+
+
+  })
 });
 
 
@@ -99,7 +99,7 @@ router.route('/users/signup').post((req, res) => {
 });
 
 // Works!!!
-// login route - compare passwords and return JWT token with _id and admin fields
+// users/login route - compare passwords and return JWT token with _id and admin fields
 router.route('/users/login').post((req, res) => {
   var checkEmail = req.body.email;
   var checkPassword = req.body.password;
@@ -110,11 +110,13 @@ router.route('/users/login').post((req, res) => {
     } if (user) {
       let passwordMatch = shService.comparePasswords(checkPassword, user.password);
       if (passwordMatch) {
-        
-        let token = authService.signUser(user); //  create JWT
-        res.cookie('jwt', token);               //  post cookie to browser
-        res.send('login Successful')
-
+        let token = authService.signUser(user);   // created token
+        res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+        res.json({
+          userId: user._id,
+          admin: user.admin,
+          token: token
+        });
       } else {
         console.log('Wrong Password');
         res.send('Wrong Password');
@@ -129,10 +131,6 @@ router.route('/users/logout').post((req, res) => {
   res.cookie("jwt", " ", { expires: new Date(0) });
   res.send('Logged Out');
 });
-
-
-
-
 
 // verified below route works
 // update one user with all new info (except password)
@@ -315,57 +313,6 @@ router.route('/orders/user/:userid').get((req, res) => {
       res.json(order);
   });
 });
-
-
-// Works!!!
-// users/login route - compare passwords and return JWT token with _id and admin fields
-router.route('/users/login').post((req, res) => {
-  var checkEmail = req.body.email;
-  var checkPassword = req.body.password;
-
-  User.findOne({ email: checkEmail }, (err, user) => {
-    if (!user) {
-      return res.status(401).send('Login Failed, User not found');
-    } if (user) {
-      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
-      if (passwordMatch) {
-        let token = authService.signUser(user);   // created token
-        res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
-        res.json({reply: 'Login Successful'});
-      } else {
-        console.log('Wrong Password');
-        res.send('Wrong Password');
-      }
-    }
-  });
-});
-
-
-// login and use jwt as cookie
-// router.route('/login').post((req, res) => {
-//   User.find({
-//     where: {
-//       email: req.body.email,
-//       password: req.body.password
-//     }
-
-//   }).then(user => {       // find() method returns the object (if found) and passes it in as 'user' for testing
-//     if(!user) {           // find() did not find a matching name & password - therefore 'user' is null
-//       console.log('Authorised User not found');
-//       return res.status(401).json({
-//         message: "login Failed - Not Valid"
-//       });
-//     } 
-//     if(user) {
-//       let token = authService.signUser(user);   // created token
-//       res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
-//       res.send('Login Successfull');
-//     } else {
-//       console.log('Wrong Password');
-//       res.redirect('login')
-//     }
-//   });
-// });
 
 app.use('/', router);
 
