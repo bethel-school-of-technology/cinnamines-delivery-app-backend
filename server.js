@@ -62,7 +62,6 @@ router.get('/users', (req, res) => {
 });
 
 
-// verified below route works
 // get one user
 router.route('/users/profile').get((req, res) => {
   let token = req.cookies.jwt;
@@ -86,56 +85,65 @@ router.route('/users/profile').get((req, res) => {
 });
 
 
-// verified below route works
 // add one user - salt and hashes password and checks to see if a user exists with that email first
 router.route('/users/signup').post((req, res) => {
-  let newUser = new User({
-    name: req.body.name,
-    email: req.body.email,
-    password: shService.hashPassword(req.body.password),
-    phone: req.body.phone,
-    admin: req.body.admin    // otherwise no way create admin user
-  });
-  User.findOne({ email: req.body.email }, (err, user) => {
-    if (user) {
-      return res.send('User already exists');
-    } else {
-      newUser.save()
-        .then(user => {
-          res.status(200).send('User Added successfully');
-        })
-        .catch(err => {
-          res.status(400).send('Failed to create new record');
-        });
-    }
-  });
+  let token = req.cookies.jwt;
+  if (!token) {
+    let newUser = new User({
+      name: req.body.name,
+      email: req.body.email,
+      password: shService.hashPassword(req.body.password),
+      phone: req.body.phone,
+      admin: req.body.admin    // otherwise no way create admin user
+    });
+    User.findOne({ email: req.body.email }, (err, user) => {
+      if (user) {
+        return res.send('User already exists');
+      } else {
+        newUser.save()
+          .then(user => {
+            res.status(200).send('User Added successfully');
+          })
+          .catch(err => {
+            res.status(400).send('Failed to create new record');
+          });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('A user already logged in, please logout before signing up new user');
+  }
 });
 
-// Works!!!
 // users/login route - compare passwords and return JWT token with _id and admin fields
 router.route('/users/login').post((req, res) => {
-  var checkEmail = req.body.email;
-  var checkPassword = req.body.password;
-
-  User.findOne({ email: checkEmail }, (err, user) => {
-    if (!user) {
-      return res.status(401).send('Login Failed, User not found');
-    } if (user) {
-      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
-      if (passwordMatch) {
-        let token = authService.signUser(user);   // created token
-        res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
-        res.json({
-          userId: user._id,
-          admin: user.admin,
-          token: token
-        });
-      } else {
-        console.log('Wrong Password');
-        res.send('Wrong Password');
+  let token = req.cookies.jwt;
+  if (!token) {
+    var checkEmail = req.body.email;
+    var checkPassword = req.body.password;
+    User.findOne({ email: checkEmail }, (err, user) => {
+      if (!user) {
+        return res.status(401).send('Login Failed, User not found');
+      } if (user) {
+        let passwordMatch = shService.comparePasswords(checkPassword, user.password);
+        if (passwordMatch) {
+          let token = authService.signUser(user);   // created token
+          res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+          res.json({
+            userId: user._id,
+            admin: user.admin,
+            token: token
+          });
+        } else {
+          console.log('Wrong Password');
+          res.send('Wrong Password');
+        }
       }
-    }
-  });
+    });
+  } else {
+    res.status(401);
+    res.send('User already logged in');
+  }
 });
 
 // verified logout route works
