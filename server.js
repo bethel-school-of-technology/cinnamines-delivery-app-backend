@@ -37,92 +37,116 @@ connection.once('open', () => {
 });
 
 
-// get a list of all users
-
+// get a list of all users - admin only - secured
 router.get('/users', (req, res) => {
-  let token = req.cookies.jwt;   // unable to access the cookies ????
-  console.log('The token is ' + ' ', token); // Am I getting a cookie back?
-
-  // is there a token - if so session not expired or logged out
-
-  authService.verifyUser(token)
-
-  // is the admin property set to 'true'
-
-  User.find((err, users) => {
-    if (err) {
-      console.log(err);
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      User.find((err, users) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.json(users);
+        }
+      })
     } else {
-      res.json(users);
+      res.status(401);
+      res.send('User not authorized');
     }
-
-
-  })
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
 
-// verified below route works
-// get one user
-router.route('/users/:id').get((req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(user);
-  });
+// get logged in user - user only - secured
+router.route('/users/profile').get((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
+    if (!decoded.admin) {
+      User.findById(decoded._id, (err, user) => {
+        if (err)
+          console.log(err);
+        else
+          res.json(user);
+      });
+    } else {
+      res.status(401);
+      res.send('This user is an admin, please redirect to admin profile page');
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
 
-// verified below route works
-// add one user - salt and hashes password and checks to see if a user exists with that email first
+// add one user - salt and hashes password 
+// and checks to see if a user exists with that email 
+// first - secured
 router.route('/users/signup').post((req, res) => {
-  let newUser = new User({
-    name: req.body.name,
-    email: req.body.email,
-    password: shService.hashPassword(req.body.password),
-    phone: req.body.phone,
-    admin: req.body.admin    // otherwise no way create admin user
-  });
-  User.findOne({ email: req.body.email }, (err, user) => {
-    if (user) {
-      return res.send('User already exists');
-    } else {
-      newUser.save()
-        .then(user => {
-          res.status(200).send('User Added successfully');
-        })
-        .catch(err => {
-          res.status(400).send('Failed to create new record');
-        });
-    }
-  });
+  let token = req.cookies.jwt;
+  if (!token) {
+    let newUser = new User({
+      name: req.body.name,
+      email: req.body.email,
+      password: shService.hashPassword(req.body.password),
+      phone: req.body.phone
+      // admin: req.body.admin    // otherwise no way create admin user
+      // what about set admin using postman?
+    });
+    User.findOne({ email: req.body.email }, (err, user) => {
+      if (user) {
+        return res.send('User already exists');
+      } else {
+        newUser.save()
+          .then(user => {
+            res.status(200).send('User Added successfully');
+          })
+          .catch(err => {
+            res.status(400).send('Failed to create new record');
+          });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('A user already logged in, please logout before signing up new user');
+  }
 });
 
-// Works!!!
-// users/login route - compare passwords and return JWT token with _id and admin fields
+// login route - compare passwords and return JWT 
+// token with _id and admin fields - secured
 router.route('/users/login').post((req, res) => {
-  var checkEmail = req.body.email;
-  var checkPassword = req.body.password;
-
-  User.findOne({ email: checkEmail }, (err, user) => {
-    if (!user) {
-      return res.status(401).send('Login Failed, User not found');
-    } if (user) {
-      let passwordMatch = shService.comparePasswords(checkPassword, user.password);
-      if (passwordMatch) {
-        let token = authService.signUser(user);   // created token
-        res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
-        res.json({
-          userId: user._id,
-          admin: user.admin,
-          token: token
-        });
-      } else {
-        console.log('Wrong Password');
-        res.send('Wrong Password');
+  let token = req.cookies.jwt;
+  if (!token) {
+    var checkEmail = req.body.email;
+    var checkPassword = req.body.password;
+    User.findOne({ email: checkEmail }, (err, user) => {
+      if (!user) {
+        return res.status(401).send('Login Failed, User not found');
+      } if (user) {
+        let passwordMatch = shService.comparePasswords(checkPassword, user.password);
+        if (passwordMatch) {
+          let token = authService.signUser(user);   // created token
+          res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+          res.json({
+            userId: user._id,
+            admin: user.admin,
+            token: token
+          });
+        } else {
+          console.log('Wrong Password');
+          res.send('Wrong Password');
+        }
       }
-    }
-  });
+    });
+  } else {
+    res.status(401);
+    res.send('User already logged in');
+  }
 });
 
 // verified logout route works
@@ -132,186 +156,279 @@ router.route('/users/logout').post((req, res) => {
   res.send('Logged Out');
 });
 
-// verified below route works
-// update one user with all new info (except password)
-router.route('/users/updateall/:id').post((req, res, next) => {
-  User.findById(req.params.id, (err, user) => {
-    if (!user)
-      return next(new Error('Could not load document'));
-    else {
-      user.name = req.body.name;
-      user.email = req.body.email;
-      // user.password = req.body.password;
-      user.phone = req.body.phone;
-
-      user.save()
-        .then(user => {
-          res.json('Update done');
-        })
-        .catch(err => {
+// update logged in user with all new info (except 
+// password) - user only - secured
+router.route('/users/updateall').post((req, res, next) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    User.findById(decoded._id, (err, user) => {
+      if (!user)
+        return next(new Error('Could not load document'));
+      else {
+        user.name = req.body.name;
+        user.email = req.body.email;
+        user.phone = req.body.phone;
+        user.save().then(user => {
+          res.send('Update done');
+        }).catch(err => {
           res.status(400).send('Update failed');
         });
-    }
-  });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// verified below route works
-// update name of one user
-router.route('/users/updatename/:id').post((req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (!user)
-      return next(new Error('Could not load document'));
-    else {
-      user.name = req.body.name;
-
-      user.save()
-        .then(user => {
-          res.json('Update done');
-        })
-        .catch(err => {
+// update name of logged in user - user only - secured
+router.route('/users/updatename').post((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    User.findById(decoded._id, (err, user) => {
+      if (!user)
+        return next(new Error('Could not load document'));
+      else {
+        user.name = req.body.name;
+        user.save().then(user => {
+          res.send('Update done');
+        }).catch(err => {
           res.status(400).send('Update failed');
         });
-    }
-  });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// verified below route works
-// update email of one user
-router.route('/users/updateemail/:id').post((req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (!user)
-      return next(new Error('Could not load document'));
-    else {
-      user.email = req.body.email;
-
-      user.save()
-        .then(user => {
-          res.json('Update done');
-        })
-        .catch(err => {
+// update email of logged in user - user only - secured
+router.route('/users/updateemail').post((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    User.findById(decoded._id, (err, user) => {
+      if (!user)
+        return next(new Error('Could not load document'));
+      else {
+        user.email = req.body.email;
+        user.save().then(user => {
+          res.send('Update done');
+        }).catch(err => {
           res.status(400).send('Update failed');
         });
-    }
-  });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// verified below route works
-// update phone of one user
-router.route('/users/updatephone/:id').post((req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (!user)
-      return next(new Error('Could not load document'));
-    else {
-      user.phone = req.body.phone;
-
-      user.save()
-        .then(user => {
-          res.json('Update done');
-        })
-        .catch(err => {
+// update phone of logged in user - user only - secured
+router.route('/users/updatephone').post((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    User.findById(decoded._id, (err, user) => {
+      if (!user)
+        return next(new Error('Could not load document'));
+      else {
+        user.phone = req.body.phone;
+        user.save().then(user => {
+          res.send('Update done');
+        }).catch(err => {
           res.status(400).send('Update failed');
         });
-    }
-  });
+      }
+    });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// verified below route works
-// delete one user
+// delete user - admin only - secured
 router.route('/users/delete/:id').delete((req, res) => {
-  User.findByIdAndRemove({ _id: req.params.id }, (err, user) => {
-    if (err)
-      res.json(err);
-    else
-      res.json('Removed Successfully');
-  });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      User.findByIdAndRemove({ _id: req.params.id }, (err, user) => {
+        if (err)
+          res.json(err);
+        else
+          res.json('Removed Successfully');
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// get all orders
+// get all orders - admin only - secured
 router.route('/orders').get((req, res) => {
-  Order.find((err, orders) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(orders);
-  });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      Order.find((err, orders) => {
+        if (err)
+          console.log(err);
+        else
+          res.json(orders);
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-
-// gets all orders that do not have a status of delivered
+// gets all orders that do not have a status of 
+// delivered - admin only - secured
 router.route('/orders/status').get((req, res) => {
-  Order.find({ status: { $ne: "Delivered" } }, (err, order) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(order);
-  });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      Order.find({ status: { $ne: "Delivered" } }, (err, order) => {
+        if (err)
+          console.log(err);
+        else
+          res.json(order);
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// get one order - maybe not necessary
+// get one order - admin only - secured
 router.route('/orders/:id').get((req, res) => {
-  Order.findById(req.params.id, (err, order) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(order);
-  });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      Order.findById(req.params.id, (err, order) => {
+        if (err)
+          console.log(err);
+        else
+          res.json(order);
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// add one order
+// add one order - user only - secured
 router.route('/orders/add').post((req, res) => {
-  let order = new Order(req.body);
-  order.save()
-    .then(order => {
-      res.status(200).json({ 'order': 'Added order successfully' });
-    })
-    .catch(err => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    let order = new Order({
+      user_id: decoded._id,
+      qty: req.body.qty,
+      address: req.body.address,
+      delivDate: req.body.delivDate
+    });
+    order.save().then(order => {
+      res.status(200).send('Added order successfully');
+    }).catch(err => {
       res.status(400).send('Failed to create new order');
     });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// update status on one order - admin to change status
+// update status on one order - admin only - secured
 router.route('/orders/updatestatus/:id').post((req, res) => {
-  Order.findById(req.params.id, (err, order) => {
-    if (!order)
-      return next(new Error('Could not load document'));
-    else {
-      order.status = req.body.status;
-
-      order.save()
-        .then(order => {
-          res.json('Update status done');
-        })
-        .catch(err => {
-          res.status(400).send('Update failed');
-        });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      Order.findById(req.params.id, (err, order) => {
+        if (!order) {
+          return next(new Error('Could not load document'));
+        } else {
+          order.status = req.body.status;
+          order.save().then(order => {
+            res.send('Update status done');
+          }).catch(err => {
+            res.status(400).send('Update failed');
+          });
+        }
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
     }
-  });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// delete one order
+// delete one order - admin only - secured
 router.route('/orders/delete/:id').delete((req, res) => {
-  Order.findByIdAndRemove({ _id: req.params.id }, (err, order) => {
-    if (err)
-      res.json(err);
-    else
-      res.json('Removed Order Successfully');
-  });
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      Order.findByIdAndRemove({ _id: req.params.id }, (err, order) => {
+        if (err) {
+          res.json(err);
+        } else {
+          res.send('Removed Order Successfully');
+        }
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
-// route works
-// get all orders with same client_id/user_id (maybe sort with status open on top)
-router.route('/orders/user/:userid').get((req, res) => {
-  Order.find({ user_id: req.params.userid }, (err, order) => {
-    if (err)
-      console.log(err);
-    else
-      res.json(order);
-  });
+// get all orders with same user_id - user order
+// history (maybe sort by status) - user only - secured
+router.route('/orders/user').get((req, res) => {
+  let token = req.cookies.jwt;
+  if (token) {
+    let decoded = jwt.verify(token, 'secretkey');
+    Order.find({ user_id: decoded._id }, (err, order) => {
+      if (err)
+        console.log(err);
+      else
+        res.json(order);
+    });
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
 });
 
 app.use('/', router);
