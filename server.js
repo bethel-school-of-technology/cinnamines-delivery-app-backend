@@ -11,7 +11,7 @@ import cookieParser from 'cookie-parser';
 
 var shService = require('./services/saltnhash');
 
-
+const jwt = require('jsonwebtoken');
 const app = express();
 const router = express.Router();
 
@@ -36,7 +36,7 @@ connection.once('open', () => {
   console.log('MongoDB database connection established successfully');
 });
 
-
+// entire route verified!
 // get a list of all users - admin only - secured
 router.get('/users', (req, res) => {
   let token = req.cookies.jwt;
@@ -60,7 +60,7 @@ router.get('/users', (req, res) => {
   }
 });
 
-
+// entire route verified!
 // get logged in user - user only - secured
 router.route('/users/profile').get((req, res) => {
   let token = req.cookies.jwt;
@@ -83,7 +83,7 @@ router.route('/users/profile').get((req, res) => {
   }
 });
 
-
+// entire route verified!
 // add one user - salt and hashes password 
 // and checks to see if a user exists with that email 
 // first - secured
@@ -95,8 +95,6 @@ router.route('/users/signup').post((req, res) => {
       email: req.body.email,
       password: shService.hashPassword(req.body.password),
       phone: req.body.phone
-      // admin: req.body.admin    // otherwise no way create admin user
-      // what about set admin using postman?
     });
     User.findOne({ email: req.body.email }, (err, user) => {
       if (user) {
@@ -104,7 +102,7 @@ router.route('/users/signup').post((req, res) => {
       } else {
         newUser.save()
           .then(user => {
-            res.status(200).send('User Added successfully');
+            res.status(200).send('User Added successfully, route to login page');
           })
           .catch(err => {
             res.status(400).send('Failed to create new record');
@@ -117,6 +115,7 @@ router.route('/users/signup').post((req, res) => {
   }
 });
 
+// entire route verified!
 // login route - compare passwords and return JWT 
 // token with _id and admin fields - secured
 router.route('/users/login').post((req, res) => {
@@ -145,17 +144,18 @@ router.route('/users/login').post((req, res) => {
     });
   } else {
     res.status(401);
-    res.send('User already logged in');
+    res.send('A User is already logged in');
   }
 });
 
-// verified logout route works
+// entire route verified!
 // logout Route
 router.route('/users/logout').post((req, res) => {
   res.cookie("jwt", " ", { expires: new Date(0) });
   res.send('Logged Out');
 });
 
+// entire route verified!
 // update logged in user with all new info (except 
 // password) - user only - secured
 router.route('/users/updateall').post((req, res, next) => {
@@ -163,9 +163,9 @@ router.route('/users/updateall').post((req, res, next) => {
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
-      if (!user)
+      if (!user) {
         return next(new Error('Could not load document'));
-      else {
+      } else if (req.body.name && req.body.email && req.body.name) {
         user.name = req.body.name;
         user.email = req.body.email;
         user.phone = req.body.phone;
@@ -174,6 +174,8 @@ router.route('/users/updateall').post((req, res, next) => {
         }).catch(err => {
           res.status(400).send('Update failed');
         });
+      } else {
+        res.send('Please enter new name, email, and phone number')
       }
     });
   } else {
@@ -182,21 +184,24 @@ router.route('/users/updateall').post((req, res, next) => {
   }
 });
 
+// entire route verified!
 // update name of logged in user - user only - secured
 router.route('/users/updatename').post((req, res) => {
   let token = req.cookies.jwt;
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
-      if (!user)
+      if (!user) {
         return next(new Error('Could not load document'));
-      else {
+      } else if (req.body.name) {
         user.name = req.body.name;
         user.save().then(user => {
           res.send('Update done');
         }).catch(err => {
           res.status(400).send('Update failed');
         });
+      } else {
+        res.send('Please enter new name');
       }
     });
   } else {
@@ -205,21 +210,24 @@ router.route('/users/updatename').post((req, res) => {
   }
 });
 
+// entire route verified!
 // update email of logged in user - user only - secured
 router.route('/users/updateemail').post((req, res) => {
   let token = req.cookies.jwt;
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
-      if (!user)
+      if (!user) {
         return next(new Error('Could not load document'));
-      else {
+      } else if (req.body.email) { //checks if there is a email
         user.email = req.body.email;
         user.save().then(user => {
           res.send('Update done');
         }).catch(err => {
           res.status(400).send('Update failed');
         });
+      } else {
+        res.send('Please enter new email');
       }
     });
   } else {
@@ -228,21 +236,24 @@ router.route('/users/updateemail').post((req, res) => {
   }
 });
 
+// entire route verified!
 // update phone of logged in user - user only - secured
 router.route('/users/updatephone').post((req, res) => {
   let token = req.cookies.jwt;
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
-      if (!user)
+      if (!user) {
         return next(new Error('Could not load document'));
-      else {
+      } else if (req.body.phone) {
         user.phone = req.body.phone;
         user.save().then(user => {
           res.send('Update done');
         }).catch(err => {
           res.status(400).send('Update failed');
         });
+      } else {
+        res.send('Please enter new phone number');
       }
     });
   } else {
@@ -251,6 +262,7 @@ router.route('/users/updatephone').post((req, res) => {
   }
 });
 
+// entire route verified!
 // delete user - admin only - secured
 router.route('/users/delete/:id').delete((req, res) => {
   let token = req.cookies.jwt;
@@ -261,7 +273,7 @@ router.route('/users/delete/:id').delete((req, res) => {
         if (err)
           res.json(err);
         else
-          res.json('Removed Successfully');
+          res.send('Removed Successfully');
       });
     } else {
       res.status(401);
@@ -273,6 +285,7 @@ router.route('/users/delete/:id').delete((req, res) => {
   }
 });
 
+// entire route verified!
 // get all orders - admin only - secured
 router.route('/orders').get((req, res) => {
   let token = req.cookies.jwt;
@@ -295,6 +308,7 @@ router.route('/orders').get((req, res) => {
   }
 });
 
+// entire route verified!
 // gets all orders that do not have a status of 
 // delivered - admin only - secured
 router.route('/orders/status').get((req, res) => {
@@ -318,6 +332,7 @@ router.route('/orders/status').get((req, res) => {
   }
 });
 
+// entire route verified!
 // get one order - admin only - secured
 router.route('/orders/:id').get((req, res) => {
   let token = req.cookies.jwt;
@@ -340,28 +355,34 @@ router.route('/orders/:id').get((req, res) => {
   }
 });
 
+// entire route verified!
 // add one order - user only - secured
 router.route('/orders/add').post((req, res) => {
   let token = req.cookies.jwt;
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
-    let order = new Order({
-      user_id: decoded._id,
-      qty: req.body.qty,
-      address: req.body.address,
-      delivDate: req.body.delivDate
-    });
-    order.save().then(order => {
-      res.status(200).send('Added order successfully');
-    }).catch(err => {
-      res.status(400).send('Failed to create new order');
-    });
+    if (req.body.qty && req.body.address && req.body.delivDate) {
+      let order = new Order({
+        user_id: decoded._id,
+        qty: req.body.qty,
+        address: req.body.address,
+        delivDate: req.body.delivDate
+      });
+      order.save().then(order => {
+        res.status(200).send('Added order successfully');
+      }).catch(err => {
+        res.status(400).send('Failed to create new order');
+      });
+    } else {
+      res.send('Must enter valid quantity, address, and delivery date');
+    }
   } else {
     res.status(401);
     res.send('Must be logged in');
   }
 });
 
+// entire route verified!
 // update status on one order - admin only - secured
 router.route('/orders/updatestatus/:id').post((req, res) => {
   let token = req.cookies.jwt;
@@ -371,13 +392,15 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
       Order.findById(req.params.id, (err, order) => {
         if (!order) {
           return next(new Error('Could not load document'));
-        } else {
+        } else if (req.body.status) {
           order.status = req.body.status;
           order.save().then(order => {
             res.send('Update status done');
           }).catch(err => {
             res.status(400).send('Update failed');
           });
+        } else {
+          res.send('Please enter new status');
         }
       });
     } else {
@@ -390,6 +413,7 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
   }
 });
 
+// entire route verified!
 // delete one order - admin only - secured
 router.route('/orders/delete/:id').delete((req, res) => {
   let token = req.cookies.jwt;
@@ -400,7 +424,7 @@ router.route('/orders/delete/:id').delete((req, res) => {
         if (err) {
           res.json(err);
         } else {
-          res.send('Removed Order Successfully');
+          res.send('Order Removed Successfully');
         }
       });
     } else {
@@ -413,17 +437,20 @@ router.route('/orders/delete/:id').delete((req, res) => {
   }
 });
 
-// get all orders with same user_id - user order
-// history (maybe sort by status) - user only - secured
-router.route('/orders/user').get((req, res) => {
+// get all orders with same user_id - user order history
+// (maybe sort by status) - user only - secured
+router.route('/users/history').get((req, res) => {
   let token = req.cookies.jwt;
   if (token) {
     let decoded = jwt.verify(token, 'secretkey');
-    Order.find({ user_id: decoded._id }, (err, order) => {
-      if (err)
+    Order.find({ user_id: decoded._id }, (err, orders) => {
+      if (err) {
         console.log(err);
-      else
-        res.json(order);
+      } else if (orders.length === 0) {
+        res.send('No order history, please place order');
+      } else {
+        res.json(orders);
+      }
     });
   } else {
     res.status(401);
