@@ -102,7 +102,7 @@ router.route('/users/signup').post((req, res) => {
       } else {
         newUser.save()
           .then(user => {
-            res.status(200).send('User Added successfully, route to login page');
+            res.status(200).json({message: 'User Added successfully, route to login page' });
           })
           .catch(err => {
             res.status(400).send('Failed to create new record');
@@ -136,6 +136,7 @@ router.route('/users/login').post((req, res) => {
             admin: user.admin,
             token: token
           });
+          console.log('Login Successful');
         } else {
           console.log('Wrong Password');
           res.send('Wrong Password');
@@ -152,10 +153,10 @@ router.route('/users/login').post((req, res) => {
 // logout Route
 router.route('/users/logout').post((req, res) => {
   res.cookie("jwt", " ", { expires: new Date(0) });
-  res.send('Logged Out');
+  res.json({ message: 'User Logged Out'});
+  console.log('Loggout Successful');
 });
 
-// entire route verified!
 // update logged in user with all new info (except 
 // password) - user only - secured
 router.route('/users/updateall').post((req, res, next) => {
@@ -165,18 +166,20 @@ router.route('/users/updateall').post((req, res, next) => {
     User.findById(decoded._id, (err, user) => {
       if (!user) {
         return next(new Error('Could not load document'));
-      } else if (req.body.name && req.body.email && req.body.name) {
+      } else if (!req.body.name && !req.body.email && !req.body.phone) {
+        res.send('Please enter a new name, a new email, or a new phone number')
+      } if (req.body.name) {
         user.name = req.body.name;
+      } if (req.body.email) {
         user.email = req.body.email;
+      } if (req.body.phone) {
         user.phone = req.body.phone;
-        user.save().then(user => {
-          res.send('Update done');
-        }).catch(err => {
-          res.status(400).send('Update failed');
-        });
-      } else {
-        res.send('Please enter new name, email, and phone number')
       }
+      user.save().then(user => {
+        res.send('Update done');
+      }).catch(err => {
+        res.status(400).send('Update failed');
+      });
     });
   } else {
     res.status(401);
