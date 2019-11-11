@@ -71,7 +71,7 @@ router.route('/users/profile').get((req, res) => {
         if (err)
           console.log(err);
         else
-          res.json(user);
+          res.send(user);
       });
     } else {
       res.status(401);
@@ -152,7 +152,7 @@ router.route('/users/login').post((req, res) => {
 // entire route verified!
 // logout Route
 router.route('/users/logout').post((req, res) => {
-  res.cookie("jwt", " ", { expires: new Date(0) });
+  res.cookie("jwt", "", { expires: new Date(0) });
   res.json({ message: 'User Logged Out'});
   console.log('Loggout Successful');
 });
@@ -276,7 +276,7 @@ router.route('/users/delete/:id').delete((req, res) => {
         if (err)
           res.json(err);
         else
-          res.send('Removed Successfully');
+          res.json({ message: 'Removed Successfully' });
       });
     } else {
       res.status(401);
