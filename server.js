@@ -36,11 +36,14 @@ connection.once('open', () => {
   console.log('MongoDB database connection established successfully');
 });
 
-// entire route verified!
 // get a list of all users - admin only - secured
 router.get('/users', (req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  // let token = req.cookies.jwt;
+  // if (token) {
+  const header = req.headers['authorization'];
+  if (typeof header !== 'undefined') { // is user logged in
+    const bearer = header.split(' ');
+    const token = bearer[1];
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       User.find((err, users) => {
@@ -60,11 +63,14 @@ router.get('/users', (req, res) => {
   }
 });
 
-// entire route verified!
 // get logged in user - user only - secured
 router.route('/users/profile').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
+    const bearer = header.split(' ');
+    const token = bearer[1];
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
     if (!decoded.admin) {
       User.findById(decoded._id, (err, user) => {
@@ -83,13 +89,16 @@ router.route('/users/profile').get((req, res) => {
   }
 });
 
-// entire route verified!
 // add one user - salt and hashes password 
 // and checks to see if a user exists with that email 
 // first - secured
 router.route('/users/signup').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (!token) {
+  // let token = req.cookies.jwt;
+  // if (!token) {
+  let header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token === 'undefined') {
     let newUser = new User({
       name: req.body.name,
       email: req.body.email,
@@ -102,7 +111,7 @@ router.route('/users/signup').post((req, res) => {
       } else {
         newUser.save()
           .then(user => {
-            res.status(200).json({message: 'User Added successfully, route to login page' });
+            res.status(200).json({ message: 'User Added successfully, route to login page' });
           })
           .catch(err => {
             res.status(400).send('Failed to create new record');
@@ -115,12 +124,13 @@ router.route('/users/signup').post((req, res) => {
   }
 });
 
-// entire route verified!
 // login route - compare passwords and return JWT 
 // token with _id and admin fields - secured
 router.route('/users/login').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (!token) {
+  let header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token === 'undefined') {
     var checkEmail = req.body.email;
     var checkPassword = req.body.password;
     User.findOne({ email: checkEmail }, (err, user) => {
@@ -129,8 +139,8 @@ router.route('/users/login').post((req, res) => {
       } if (user) {
         let passwordMatch = shService.comparePasswords(checkPassword, user.password);
         if (passwordMatch) {
-          let token = authService.signUser(user);   // created token
-          res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+          let token = authService.signUser(user); // created token
+          // res.cookie('jwt', token);
           res.json({
             userId: user._id,
             admin: user.admin,
@@ -152,8 +162,8 @@ router.route('/users/login').post((req, res) => {
 // entire route verified!
 // logout Route
 router.route('/users/logout').post((req, res) => {
-  res.cookie("jwt", "", { expires: new Date(0) });
-  res.json({ message: 'User Logged Out'});
+  // res.cookie("jwt", "", { expires: new Date(0) }); // this line is now unnecessary since we are using headers not cookies
+  res.json({ message: 'User Logged Out' });
   console.log('Loggout Successful');
 });
 
