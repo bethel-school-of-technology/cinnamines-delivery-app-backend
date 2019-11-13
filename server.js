@@ -196,8 +196,12 @@ router.route('/users/updateall').post((req, res, next) => {
 // entire route verified!
 // update name of logged in user - user only - secured
 router.route('/users/updatename').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  // let token = req.cookies.jwt;
+  // if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -205,7 +209,7 @@ router.route('/users/updatename').post((req, res) => {
       } else if (req.body.name) {
         user.name = req.body.name;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Name Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
@@ -222,8 +226,10 @@ router.route('/users/updatename').post((req, res) => {
 // entire route verified!
 // update email of logged in user - user only - secured
 router.route('/users/updateemail').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -231,7 +237,7 @@ router.route('/users/updateemail').post((req, res) => {
       } else if (req.body.email) { //checks if there is a email
         user.email = req.body.email;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Email Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
@@ -248,8 +254,10 @@ router.route('/users/updateemail').post((req, res) => {
 // entire route verified!
 // update phone of logged in user - user only - secured
 router.route('/users/updatephone').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -257,7 +265,7 @@ router.route('/users/updatephone').post((req, res) => {
       } else if (req.body.phone) {
         user.phone = req.body.phone;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Phone Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
