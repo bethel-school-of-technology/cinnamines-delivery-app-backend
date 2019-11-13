@@ -38,8 +38,6 @@ connection.once('open', () => {
 
 // get a list of all users - admin only - secured
 router.get('/users', (req, res) => {
-  // let token = req.cookies.jwt;
-  // if (token) {
   const header = req.headers['authorization'];
   if (typeof header !== 'undefined') { // is user logged in
     const bearer = header.split(' ');
@@ -69,8 +67,6 @@ router.route('/users/profile').get((req, res) => {
   const bearer = header.split(' ');
   const token = bearer[1];
   if (token !== 'undefined') {
-    const bearer = header.split(' ');
-    const token = bearer[1];
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
     if (!decoded.admin) {
       User.findById(decoded._id, (err, user) => {
@@ -278,15 +274,19 @@ router.route('/users/updatephone').post((req, res) => {
 // entire route verified!
 // delete user - admin only - secured
 router.route('/users/delete/:id').delete((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  // let token = req.cookies.jwt;
+  const header = req.headers['authorization'];
+  if (typeof header !== 'undefined') { // is user logged in
+    const bearer = header.split(' ');
+    const token = bearer[1];
+    // if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       User.findByIdAndRemove({ _id: req.params.id }, (err, user) => {
         if (err)
           res.json(err);
         else
-          res.json({ message: 'Removed Successfully' });
+          res.json({ message: 'User Removed Successfully' });
       });
     } else {
       res.status(401);
