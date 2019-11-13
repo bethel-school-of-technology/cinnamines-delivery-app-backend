@@ -333,15 +333,17 @@ router.route('/orders').get((req, res) => {
 // gets all orders that do not have a status of 
 // delivered - admin only - secured
 router.route('/orders/status').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
-      Order.find({ status: { $ne: "Delivered" } }, (err, order) => {
+      Order.find({ status: { $ne: "Delivered" } }, (err, orders) => {
         if (err)
           console.log(err);
         else
-          res.json(order);
+          res.json(orders);
       });
     } else {
       res.status(401);
@@ -376,11 +378,12 @@ router.route('/orders/:id').get((req, res) => {
   }
 });
 
-// entire route verified!
 // add one order - user only - secured
 router.route('/orders/add').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (req.body.qty && req.body.address && req.body.delivDate) {
       let order = new Order({
@@ -390,7 +393,7 @@ router.route('/orders/add').post((req, res) => {
         delivDate: req.body.delivDate
       });
       order.save().then(order => {
-        res.status(200).send('Added order successfully');
+        res.status(200).json({ message: 'Order Added Successfully' });
       }).catch(err => {
         res.status(400).send('Failed to create new order');
       });
@@ -461,14 +464,16 @@ router.route('/orders/delete/:id').delete((req, res) => {
 // get all orders with same user_id - user order history
 // (maybe sort by status) - user only - secured
 router.route('/users/history').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     Order.find({ user_id: decoded._id }, (err, orders) => {
       if (err) {
         console.log(err);
       } else if (orders.length === 0) {
-        res.send('No order history, please place order');
+        res.json({ message: 'No order history, please place order' });
       } else {
         res.json(orders);
       }
