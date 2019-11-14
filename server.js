@@ -309,8 +309,10 @@ router.route('/users/delete/:id').delete((req, res) => {
 // entire route verified!
 // get all orders - admin only - secured
 router.route('/orders').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.find((err, orders) => {
@@ -358,8 +360,10 @@ router.route('/orders/status').get((req, res) => {
 // entire route verified!
 // get one order - admin only - secured
 router.route('/orders/:id').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findById(req.params.id, (err, order) => {
@@ -409,8 +413,10 @@ router.route('/orders/add').post((req, res) => {
 // entire route verified!
 // update status on one order - admin only - secured
 router.route('/orders/updatestatus/:id').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findById(req.params.id, (err, order) => {
@@ -419,7 +425,7 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
         } else if (req.body.status) {
           order.status = req.body.status;
           order.save().then(order => {
-            res.send('Update status done');
+            res.json({ message: 'Status Updated Successfully' });
           }).catch(err => {
             res.status(400).send('Update failed');
           });
@@ -440,15 +446,17 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
 // entire route verified!
 // delete one order - admin only - secured
 router.route('/orders/delete/:id').delete((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findByIdAndRemove({ _id: req.params.id }, (err, order) => {
         if (err) {
           res.json(err);
         } else {
-          res.send('Order Removed Successfully');
+          res.json({ message: 'Order Removed Successfully' });
         }
       });
     } else {
