@@ -36,11 +36,12 @@ connection.once('open', () => {
   console.log('MongoDB database connection established successfully');
 });
 
-// entire route verified!
 // get a list of all users - admin only - secured
 router.get('/users', (req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  if (typeof header !== 'undefined') { // is user logged in
+    const bearer = header.split(' ');
+    const token = bearer[1];
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       User.find((err, users) => {
@@ -60,11 +61,12 @@ router.get('/users', (req, res) => {
   }
 });
 
-// entire route verified!
 // get logged in user - user only - secured
 router.route('/users/profile').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
     if (!decoded.admin) {
       User.findById(decoded._id, (err, user) => {
@@ -83,13 +85,16 @@ router.route('/users/profile').get((req, res) => {
   }
 });
 
-// entire route verified!
 // add one user - salt and hashes password 
 // and checks to see if a user exists with that email 
 // first - secured
 router.route('/users/signup').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (!token) {
+  // let token = req.cookies.jwt;
+  // if (!token) {
+  let header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token === 'undefined') {
     let newUser = new User({
       name: req.body.name,
       email: req.body.email,
@@ -102,7 +107,7 @@ router.route('/users/signup').post((req, res) => {
       } else {
         newUser.save()
           .then(user => {
-            res.status(200).json({message: 'User Added successfully, route to login page' });
+            res.status(200).json({ message: 'User Added successfully, route to login page' });
           })
           .catch(err => {
             res.status(400).send('Failed to create new record');
@@ -115,12 +120,13 @@ router.route('/users/signup').post((req, res) => {
   }
 });
 
-// entire route verified!
 // login route - compare passwords and return JWT 
 // token with _id and admin fields - secured
 router.route('/users/login').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (!token) {
+  let header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token === 'undefined') {
     var checkEmail = req.body.email;
     var checkPassword = req.body.password;
     User.findOne({ email: checkEmail }, (err, user) => {
@@ -129,8 +135,8 @@ router.route('/users/login').post((req, res) => {
       } if (user) {
         let passwordMatch = shService.comparePasswords(checkPassword, user.password);
         if (passwordMatch) {
-          let token = authService.signUser(user);   // created token
-          res.cookie('jwt', token);                 // response is to name object token 'jwt' and send as a cookie
+          let token = authService.signUser(user); // created token
+          // res.cookie('jwt', token);
           res.json({
             userId: user._id,
             admin: user.admin,
@@ -152,8 +158,8 @@ router.route('/users/login').post((req, res) => {
 // entire route verified!
 // logout Route
 router.route('/users/logout').post((req, res) => {
-  res.cookie("jwt", "", { expires: new Date(0) });
-  res.json({ message: 'User Logged Out'});
+  // res.cookie("jwt", "", { expires: new Date(0) }); // this line is now unnecessary since we are using headers not cookies
+  res.json({ message: 'User Logged Out' });
   console.log('Loggout Successful');
 });
 
@@ -190,8 +196,12 @@ router.route('/users/updateall').post((req, res, next) => {
 // entire route verified!
 // update name of logged in user - user only - secured
 router.route('/users/updatename').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  // let token = req.cookies.jwt;
+  // if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -199,7 +209,7 @@ router.route('/users/updatename').post((req, res) => {
       } else if (req.body.name) {
         user.name = req.body.name;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Name Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
@@ -216,8 +226,10 @@ router.route('/users/updatename').post((req, res) => {
 // entire route verified!
 // update email of logged in user - user only - secured
 router.route('/users/updateemail').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -225,7 +237,7 @@ router.route('/users/updateemail').post((req, res) => {
       } else if (req.body.email) { //checks if there is a email
         user.email = req.body.email;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Email Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
@@ -242,8 +254,10 @@ router.route('/users/updateemail').post((req, res) => {
 // entire route verified!
 // update phone of logged in user - user only - secured
 router.route('/users/updatephone').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     User.findById(decoded._id, (err, user) => {
       if (!user) {
@@ -251,7 +265,7 @@ router.route('/users/updatephone').post((req, res) => {
       } else if (req.body.phone) {
         user.phone = req.body.phone;
         user.save().then(user => {
-          res.send('Update done');
+          res.json({ message: 'Phone Updated Successfully' });
         }).catch(err => {
           res.status(400).send('Update failed');
         });
@@ -268,15 +282,19 @@ router.route('/users/updatephone').post((req, res) => {
 // entire route verified!
 // delete user - admin only - secured
 router.route('/users/delete/:id').delete((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  // let token = req.cookies.jwt;
+  const header = req.headers['authorization'];
+  if (typeof header !== 'undefined') { // is user logged in
+    const bearer = header.split(' ');
+    const token = bearer[1];
+    // if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       User.findByIdAndRemove({ _id: req.params.id }, (err, user) => {
         if (err)
           res.json(err);
         else
-          res.json({ message: 'Removed Successfully' });
+          res.json({ message: 'User Removed Successfully' });
       });
     } else {
       res.status(401);
@@ -291,8 +309,10 @@ router.route('/users/delete/:id').delete((req, res) => {
 // entire route verified!
 // get all orders - admin only - secured
 router.route('/orders').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.find((err, orders) => {
@@ -315,15 +335,17 @@ router.route('/orders').get((req, res) => {
 // gets all orders that do not have a status of 
 // delivered - admin only - secured
 router.route('/orders/status').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
-      Order.find({ status: { $ne: "Delivered" } }, (err, order) => {
+      Order.find({ status: { $ne: "Delivered" } }, (err, orders) => {
         if (err)
           console.log(err);
         else
-          res.json(order);
+          res.json(orders);
       });
     } else {
       res.status(401);
@@ -338,8 +360,10 @@ router.route('/orders/status').get((req, res) => {
 // entire route verified!
 // get one order - admin only - secured
 router.route('/orders/:id').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findById(req.params.id, (err, order) => {
@@ -358,11 +382,12 @@ router.route('/orders/:id').get((req, res) => {
   }
 });
 
-// entire route verified!
 // add one order - user only - secured
 router.route('/orders/add').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (req.body.qty && req.body.address && req.body.delivDate) {
       let order = new Order({
@@ -372,7 +397,7 @@ router.route('/orders/add').post((req, res) => {
         delivDate: req.body.delivDate
       });
       order.save().then(order => {
-        res.status(200).send('Added order successfully');
+        res.status(200).json({ message: 'Order Added Successfully' });
       }).catch(err => {
         res.status(400).send('Failed to create new order');
       });
@@ -388,8 +413,10 @@ router.route('/orders/add').post((req, res) => {
 // entire route verified!
 // update status on one order - admin only - secured
 router.route('/orders/updatestatus/:id').post((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findById(req.params.id, (err, order) => {
@@ -398,7 +425,7 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
         } else if (req.body.status) {
           order.status = req.body.status;
           order.save().then(order => {
-            res.send('Update status done');
+            res.json({ message: 'Status Updated Successfully' });
           }).catch(err => {
             res.status(400).send('Update failed');
           });
@@ -419,15 +446,17 @@ router.route('/orders/updatestatus/:id').post((req, res) => {
 // entire route verified!
 // delete one order - admin only - secured
 router.route('/orders/delete/:id').delete((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       Order.findByIdAndRemove({ _id: req.params.id }, (err, order) => {
         if (err) {
           res.json(err);
         } else {
-          res.send('Order Removed Successfully');
+          res.json({ message: 'Order Removed Successfully' });
         }
       });
     } else {
@@ -443,14 +472,16 @@ router.route('/orders/delete/:id').delete((req, res) => {
 // get all orders with same user_id - user order history
 // (maybe sort by status) - user only - secured
 router.route('/users/history').get((req, res) => {
-  let token = req.cookies.jwt;
-  if (token) {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey');
     Order.find({ user_id: decoded._id }, (err, orders) => {
       if (err) {
         console.log(err);
       } else if (orders.length === 0) {
-        res.send('No order history, please place order');
+        res.json({ message: 'No order history, please place order' });
       } else {
         res.json(orders);
       }
