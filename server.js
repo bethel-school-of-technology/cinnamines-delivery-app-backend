@@ -68,17 +68,17 @@ router.route('/users/profile').get((req, res) => {
   const token = bearer[1];
   if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
-    if (!decoded.admin) {
+    // if (!decoded.admin) {
       User.findById(decoded._id, (err, user) => {
         if (err)
           console.log(err);
         else
           res.send(user);
       });
-    } else {
-      res.status(401);
-      res.send('This user is an admin, please redirect to admin profile page');
-    }
+    // } else {
+    //   res.status(401);
+    //   res.send('This user is an admin, please redirect to admin profile page');
+    // }
   } else {
     res.status(401);
     res.send('Must be logged in');
@@ -279,15 +279,45 @@ router.route('/users/updatephone').post((req, res) => {
   }
 });
 
+// make a user a admin
+router.route('/users/makeAdmin').post((req, res) => {
+  const header = req.headers['authorization'];
+  const bearer = header.split(' ');
+  const token = bearer[1];
+  if (token !== 'undefined') {
+    let decoded = jwt.verify(token, 'secretkey');
+    if (decoded.admin) {
+      User.findById(req.body.id, (err, user) => {
+        if (!user) {
+          return next(new Error('Could not load document'));
+        } else if (user.admin === false) {
+          user.admin = true;
+          user.save().then(user => {
+            res.json({ message: 'Admin Status Updated Successfully' });
+          }).catch(err => {
+            res.status(400).send('Update failed');
+          });
+        } else {
+          res.send('User Is Already A Admin');
+        }
+      });
+    } else {
+      res.status(401);
+      res.send('User not authorized')
+    }
+  } else {
+    res.status(401);
+    res.send('Must be logged in');
+  }
+});
+
 // entire route verified!
 // delete user - admin only - secured
 router.route('/users/delete/:id').delete((req, res) => {
-  // let token = req.cookies.jwt;
   const header = req.headers['authorization'];
   if (typeof header !== 'undefined') { // is user logged in
     const bearer = header.split(' ');
     const token = bearer[1];
-    // if (token) {
     let decoded = jwt.verify(token, 'secretkey');
     if (decoded.admin) {
       User.findByIdAndRemove({ _id: req.params.id }, (err, user) => {
