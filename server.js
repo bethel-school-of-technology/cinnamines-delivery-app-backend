@@ -68,17 +68,17 @@ router.route('/users/profile').get((req, res) => {
   const token = bearer[1];
   if (token !== 'undefined') {
     let decoded = jwt.verify(token, 'secretkey'); //<--- Decrypt token using same key used to encrypt
-    if (!decoded.admin) {
+    // if (!decoded.admin) {
       User.findById(decoded._id, (err, user) => {
         if (err)
           console.log(err);
         else
           res.send(user);
       });
-    } else {
-      res.status(401);
-      res.send('This user is an admin, please redirect to admin profile page');
-    }
+    // } else {
+    //   res.status(401);
+    //   res.send('This user is an admin, please redirect to admin profile page');
+    // }
   } else {
     res.status(401);
     res.send('Must be logged in');
