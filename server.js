@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import mongoose, { ConnectionStates } from 'mongoose';
+const mongoose = require('mongoose');
 
 import User from './models/user';
 import Order from './models/order';
@@ -15,12 +15,20 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const router = express.Router();
 
+mongoose.connect('mongodb+srv://Tim:FinalProject!@cluster0-tsjzv.mongodb.net/test?retryWrites=true&w=majority')
+.then(() => {
+  console.log('Connected to database!')
+})
+.catch(() => { 
+  console.log('Connection failed!');
+});
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 
 // url string for mongodb instance goes below
-mongoose.connect('mongodb://localhost:27017/testfinalproject');
+
 
 // to run on cloud server un-comment line below - database is test-db
 // mongoose.connect('mongodb+srv://dbuser:Password1!@cluster0-mdnb9.mongodb.net/test-db');
